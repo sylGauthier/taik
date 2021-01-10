@@ -4,8 +4,8 @@
 #include <3dmr/scene/scene.h>
 #include <3dmr/material/solid.h>
 
-#define MAP_LENGTH  256
-#define MAP_WIDTH   8
+#define MAP_LENGTH  32
+#define MAP_WIDTH   12
 
 #define VEC(v, x, y, z) v[0] = x; v[1] = y; v[2] = z;
 
@@ -23,24 +23,35 @@ struct Tile {
     enum TileType type;
 };
 
-struct Map {
-    struct Geometry assets[TA_NUM_TILE_TYPES];
-    struct Tile tiles[MAP_LENGTH][MAP_WIDTH];
-    struct Node* root;
-    unsigned int last;
+struct Asset {
+    struct Geometry geom;
+    struct SolidMaterialParams* matpar;
 };
 
-int map_init(struct Map* map);
+struct Map {
+    struct Asset assets[TA_NUM_TILE_TYPES];
+    struct Tile tiles[MAP_LENGTH][MAP_WIDTH];
+    struct Node *root, *rows[MAP_LENGTH];
+    struct Camera* cam;
+    unsigned int first;
+};
+
+int map_init(struct Map* map, struct Camera* cam);
 void map_free(struct Map* map);
+int map_forward(struct Map* map, float dy);
 
 
 /* ship stuff */
 
 struct Ship {
+    struct Asset asset;
+    struct Node* node;
     float xPos;
+    float speed;
 };
 
 int ship_init(struct Ship* ship);
+void ship_free(struct Ship* ship);
 
 
 /* UI stuff */
@@ -51,13 +62,12 @@ struct UI {
     struct Viewer* viewer;
 
     struct Node* camNode;
-
-    struct Taik* taik;
+    char running;
 };
 
-int ui_init(struct UI* ui);
+int ui_init(struct UI* ui, void* taik);
 int ui_update_map(struct UI* ui, struct Map* map);
-int ui_render(struct UI* ui);
+float ui_render(struct UI* ui);
 void ui_free(struct UI* ui);
 
 /* main stuff */
