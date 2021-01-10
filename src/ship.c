@@ -41,7 +41,7 @@ int ship_init(struct Ship* ship) {
         node_translate(ship->node, t);
         node_set_geometry(ship->node, &ship->asset.geom);
         ship->xPos = 0;
-        ship->speed = 4.;
+        ship->speed = 2.;
         return 1;
     }
     return 0;
