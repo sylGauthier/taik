@@ -46,12 +46,13 @@ int map_forward(struct Map* map, float dy);
 struct Ship {
     struct Asset asset;
     struct Node* node;
-    float xPos;
+    float prevx;
     float speed;
 };
 
 int ship_init(struct Ship* ship);
 void ship_free(struct Ship* ship);
+void ship_update(struct Ship* ship);
 
 
 /* UI stuff */

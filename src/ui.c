@@ -102,7 +102,6 @@ int ui_update_map(struct UI* ui, struct Map* map) {
 float ui_render(struct UI* ui) {
     float dt;
     dt = viewer_next_frame(ui->viewer);
-    viewer_process_events(ui->viewer);
 
     scene_update_nodes(&ui->scene, update_node, NULL);
     scene_update_render_queue(&ui->scene, MAT_CONST_CAST(ui->cam.view),

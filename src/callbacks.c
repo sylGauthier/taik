@@ -31,11 +31,7 @@ void cursor_callback(struct Viewer* viewer,
                      int bl, int bm, int br, void* data) {
     struct Taik* taik = data;
     Vec3 t;
-    Vec3 axis = {0, 1, 0};
-    Quaternion q;
 
     VEC(t, dx / 300., 0, 0);
     node_translate(taik->ship.node, t);
-    quaternion_set_axis_angle(q, axis, dx / 50);
-    node_set_orientation(taik->ship.node, q);
 }

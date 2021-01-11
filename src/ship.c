@@ -30,6 +30,16 @@ static int ship_asset_init(struct Asset* asset) {
     return 0;
 }
 
+void ship_update(struct Ship* ship) {
+    Vec3 axis = {0, 1, 0};
+    Quaternion q;
+    float dx = ship->node->position[0] - ship->prevx;
+
+    quaternion_set_axis_angle(q, axis, dx * 3);
+    node_set_orientation(ship->node, q);
+    ship->prevx = ship->node->position[0];
+}
+
 int ship_init(struct Ship* ship) {
     if (!ship_asset_init(&ship->asset)) {
         fprintf(stderr, "Error: can't init ship asset\n");
@@ -40,8 +50,8 @@ int ship_init(struct Ship* ship) {
         node_init(ship->node);
         node_translate(ship->node, t);
         node_set_geometry(ship->node, &ship->asset.geom);
-        ship->xPos = 0;
         ship->speed = 2.;
+        ship->prevx = 0;
         return 1;
     }
     return 0;

@@ -58,6 +58,8 @@ int taik_run(struct Taik* taik) {
     float dt;
     unsigned int score = 0;
     while (taik->ui.running) {
+        viewer_process_events(taik->ui.viewer);
+        ship_update(&taik->ship);
         dt = ui_render(&taik->ui);
         if (map_forward(&taik->map, taik->ship.speed * dt)) {
             score++;
