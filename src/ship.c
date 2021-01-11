@@ -9,18 +9,18 @@ static int ship_asset_init(struct Asset* asset) {
     int meshInit = 0;
     struct Mesh mesh;
 
-    if (!(asset->matpar = solid_material_params_new())) {
+    if (!(asset->matpar = pbr_material_params_new())) {
         fprintf(stderr, "Error: can't create material param\n");
     } else if (!(meshInit = make_box(&mesh, 0.5, 0.5, 0.5))) {
         fprintf(stderr, "Error: can't create ship mesh\n");
     } else if (!(asset->geom.vertexArray = vertex_array_new(&mesh))) {
         fprintf(stderr, "Error: can't create ship vertex array\n");
     } else if (!(asset->geom.material =
-                 solid_material_new(mesh.flags, asset->matpar))) {
+                 pbr_material_new(mesh.flags, asset->matpar))) {
         fprintf(stderr, "Error: can't init ship material\n");
     } else {
         mesh_free(&mesh);
-        material_param_set_vec3_elems(&asset->matpar->color, 0.5, 0.1, 0);
+        material_param_set_vec3_elems(&asset->matpar->albedo, 0.5, 0.1, 0);
         return 1;
     }
     free(asset->matpar);

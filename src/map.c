@@ -11,17 +11,18 @@ static int init_wall(struct Asset* asset) {
     int meshInit = 0;
     struct Mesh cube;
 
-    if (!(asset->matpar = solid_material_params_new())) {
+    if (!(asset->matpar = pbr_material_params_new())) {
         fprintf(stderr, "Error: can't create material param\n");
     } else if (!(meshInit = make_box(&cube, 1, 1, 1))) {
         fprintf(stderr, "Error: can't init mesh\n");
     } else if (!(asset->geom.vertexArray = vertex_array_new(&cube))) {
         fprintf(stderr, "Error: can't init vertex array\n");
     } else if (!(asset->geom.material =
-                 solid_material_new(cube.flags, asset->matpar))) {
+                 pbr_material_new(cube.flags, asset->matpar))) {
         fprintf(stderr, "Error: can't init material\n");
     } else {
         mesh_free(&cube);
+        material_param_set_vec3_elems(&asset->matpar->albedo, 0.8, 0.8, 0.8);
         return 1;
     }
     free(asset->matpar);
@@ -35,18 +36,18 @@ static int init_empty(struct Asset* asset) {
     int meshInit = 0;
     struct Mesh quad;
 
-    if (!(asset->matpar = solid_material_params_new())) {
+    if (!(asset->matpar = pbr_material_params_new())) {
         fprintf(stderr, "Error: can't create material param\n");
     } else if (!(meshInit = make_quad(&quad, 1, 1))) {
         fprintf(stderr, "Error: can't init mesh\n");
     } else if (!(asset->geom.vertexArray = vertex_array_new(&quad))) {
         fprintf(stderr, "Error: can't init vertex array\n");
     } else if (!(asset->geom.material =
-                 solid_material_new(quad.flags, asset->matpar))) {
+                 pbr_material_new(quad.flags, asset->matpar))) {
         fprintf(stderr, "Error: can't init material\n");
     } else {
         mesh_free(&quad);
-        material_param_set_vec3_elems(&asset->matpar->color, 0.2, 0.2, 0.2);
+        material_param_set_vec3_elems(&asset->matpar->albedo, 0.2, 0.2, 0.2);
         return 1;
     }
     free(asset->matpar);

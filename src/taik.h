@@ -2,7 +2,7 @@
 #define TAIK_H
 
 #include <3dmr/scene/scene.h>
-#include <3dmr/material/solid.h>
+#include <3dmr/material/pbr.h>
 
 #define MAP_LENGTH  32
 #define MAP_WIDTH   12
@@ -25,7 +25,7 @@ struct Tile {
 
 struct Asset {
     struct Geometry geom;
-    struct SolidMaterialParams* matpar;
+    struct PBRMaterialParams* matpar;
 };
 
 struct Map {

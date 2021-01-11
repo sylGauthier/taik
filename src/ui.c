@@ -2,8 +2,13 @@
 #include <stdlib.h>
 
 #include <3dmr/render/camera_buffer_object.h>
+#include <3dmr/render/lights_buffer_object.h>
 
 #include "taik.h"
+
+#define SUN_DIRECTION   {-0.3, 0, -1}
+#define SUN_COLOR       {0.8, 0.8, 0.8}
+#define AMBIENT_COLOR   {5, 5, 5}
 
 void resize_callback(struct Viewer* viewer, void* data);
 void close_callback(struct Viewer* viewer, void* data);
@@ -26,6 +31,15 @@ void update_node(struct Scene* scene, struct Node* n, void* data) {
             break;
         default:;
     }
+}
+
+static void setup_lighting(struct Scene* scene) {
+    struct DirectionalLight l = {SUN_DIRECTION, SUN_COLOR};
+    struct AmbientLight a = {AMBIENT_COLOR};
+    lights_buffer_object_update_dlight(&scene->lights, &l, 0);
+    lights_buffer_object_update_ndlight(&scene->lights, 1);
+    lights_buffer_object_update_ambient(&scene->lights, &a);
+    uniform_buffer_send(&scene->lights);
 }
 
 int ui_init(struct UI* ui, void* cbData) {
@@ -62,6 +76,8 @@ int ui_init(struct UI* ui, void* cbData) {
                 &ui->scene.camera,
                 MAT_CONST_CAST(ui->cam.projection));
         uniform_buffer_send(&ui->scene.camera);
+
+        setup_lighting(&ui->scene);
 
         node_init(ui->camNode);
         if (!scene_add(&ui->scene, ui->camNode)) {
