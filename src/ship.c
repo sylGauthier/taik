@@ -36,7 +36,7 @@ int ship_init(struct Ship* ship) {
     } else if (!(ship->node = malloc(sizeof(struct Node)))) {
         fprintf(stderr, "Error: can't allocate ship node\n");
     } else {
-        Vec3 t = {0, -3, 0};
+        Vec3 t = {0, -3, 0.5};
         node_init(ship->node);
         node_translate(ship->node, t);
         node_set_geometry(ship->node, &ship->asset.geom);

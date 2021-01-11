@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <3dmr/mesh/box.h>
+#include <3dmr/mesh/quad.h>
 
 #include "taik.h"
 
@@ -30,6 +31,31 @@ static int init_wall(struct Asset* asset) {
     return 0;
 }
 
+static int init_empty(struct Asset* asset) {
+    int meshInit = 0;
+    struct Mesh quad;
+
+    if (!(asset->matpar = solid_material_params_new())) {
+        fprintf(stderr, "Error: can't create material param\n");
+    } else if (!(meshInit = make_quad(&quad, 1, 1))) {
+        fprintf(stderr, "Error: can't init mesh\n");
+    } else if (!(asset->geom.vertexArray = vertex_array_new(&quad))) {
+        fprintf(stderr, "Error: can't init vertex array\n");
+    } else if (!(asset->geom.material =
+                 solid_material_new(quad.flags, asset->matpar))) {
+        fprintf(stderr, "Error: can't init material\n");
+    } else {
+        mesh_free(&quad);
+        material_param_set_vec3_elems(&asset->matpar->color, 0.2, 0.2, 0.2);
+        return 1;
+    }
+    free(asset->matpar);
+    if (meshInit) mesh_free(&quad);
+    if (asset->geom.vertexArray) vertex_array_free(asset->geom.vertexArray);
+    if (asset->geom.material) free(asset->geom.material);
+    return 0;
+}
+
 static int init_assets(struct Map* map) {
     unsigned int i;
     for (i = 0; i < TA_NUM_TILE_TYPES; i++) {
@@ -38,6 +64,7 @@ static int init_assets(struct Map* map) {
         map->assets[i].geom.material = NULL;
     }
 
+    if (!init_empty(map->assets + TA_EMPTY)) return 0;
     if (!init_wall(map->assets + TA_WALL)) return 0;
     return 1;
 }
@@ -59,12 +86,22 @@ static void gen_row(struct Map* map, unsigned int row) {
     int t;
 
     for (i = 0; i < MAP_WIDTH; i++) {
-        t = rand() % TA_NUM_TILE_TYPES;
-        t *= !(row % 3);
+        struct Node* n = map->tiles[row][i].node;
+        Vec3 pos;
+
+        if (i == 0 || i == MAP_WIDTH - 1) {
+            t = TA_WALL;
+        } else {
+            t = rand() % TA_NUM_TILE_TYPES;
+            t *= !(row % 3);
+        }
+
         map->tiles[row][i].type = t;
         if (map->assets[t].geom.vertexArray) {
-            node_set_geometry(map->tiles[row][i].node, &map->assets[t].geom);
+            node_set_geometry(n, &map->assets[t].geom);
         }
+        VEC(pos, n->position[0], n->position[1], t ? 0.5 : 0);
+        node_set_pos(n, pos);
     }
 }
 

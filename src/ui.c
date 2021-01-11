@@ -34,7 +34,7 @@ int ui_init(struct UI* ui, void* cbData) {
     ui->camNode = NULL;
     ui->running = 1;
 
-    camera_projection(1., 30 / 360. * 2 * M_PI, 0.001, 1000.,
+    camera_projection(1., 60 / 360. * 2 * M_PI, 0.001, 1000.,
                       ui->cam.projection);
 
     if (!(ui->viewer = viewer_new(640, 480, "taik"))) {
@@ -44,7 +44,7 @@ int ui_init(struct UI* ui, void* cbData) {
     } else if (!(ui->camNode = calloc(1, sizeof(struct Node)))) {
         fprintf(stderr, "Error: can't allocate node\n");
     } else {
-        Vec3 t = {0, -10, 15};
+        Vec3 t = {0, -6, 6};
 
         ui->viewer->callbackData = cbData;
         ui->viewer->resize_callback = resize_callback;
@@ -70,8 +70,7 @@ int ui_init(struct UI* ui, void* cbData) {
             Vec3 axis = {1, 0, 0};
             node_set_camera(ui->camNode, &ui->cam);
             node_set_pos(ui->camNode, t);
-            node_rotate(ui->camNode, axis, M_PI / 5.);
-            glfwSwapInterval(1);
+            node_rotate(ui->camNode, axis, M_PI / 4.);
             return 1;
         }
     }
