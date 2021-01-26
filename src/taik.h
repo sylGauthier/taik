@@ -2,9 +2,10 @@
 #define TAIK_H
 
 #include <3dmr/scene/scene.h>
+#include <3dmr/scene/gltf.h>
 #include <3dmr/material/pbr.h>
 
-#define MAP_LENGTH  32
+#define MAP_LENGTH  33
 #define MAP_WIDTH   12
 
 #define VEC(v, x, y, z) v[0] = x; v[1] = y; v[2] = z;
@@ -44,8 +45,9 @@ int map_forward(struct Map* map, float dy);
 /* ship stuff */
 
 struct Ship {
-    struct Asset asset;
     struct Node* node;
+    struct ImportMetadata metadata;
+    struct ImportSharedData shared;
     float prevx;
     float speed;
 };

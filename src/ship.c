@@ -1,66 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <3dmr/mesh/box.h>
 
 #include "taik.h"
-
-static int ship_asset_init(struct Asset* asset) {
-    int meshInit = 0;
-    struct Mesh mesh;
-
-    if (!(asset->matpar = pbr_material_params_new())) {
-        fprintf(stderr, "Error: can't create material param\n");
-    } else if (!(meshInit = make_box(&mesh, 0.5, 0.5, 0.5))) {
-        fprintf(stderr, "Error: can't create ship mesh\n");
-    } else if (!(asset->geom.vertexArray = vertex_array_new(&mesh))) {
-        fprintf(stderr, "Error: can't create ship vertex array\n");
-    } else if (!(asset->geom.material =
-                 pbr_material_new(mesh.flags, asset->matpar))) {
-        fprintf(stderr, "Error: can't init ship material\n");
-    } else {
-        mesh_free(&mesh);
-        material_param_set_vec3_elems(&asset->matpar->albedo, 0.5, 0.1, 0);
-        return 1;
-    }
-    free(asset->matpar);
-    if (meshInit) mesh_free(&mesh);
-    if (asset->geom.vertexArray) vertex_array_free(asset->geom.vertexArray);
-    if (asset->geom.material) free(asset->geom.material);
-    return 0;
-}
 
 void ship_update(struct Ship* ship) {
     Vec3 axis = {0, 1, 0};
     Quaternion q;
     float dx = ship->node->position[0] - ship->prevx;
 
-    quaternion_set_axis_angle(q, axis, dx * 3);
+    quaternion_set_axis_angle(q, axis, dx * 5);
     node_set_orientation(ship->node, q);
     ship->prevx = ship->node->position[0];
 }
 
-int ship_init(struct Ship* ship) {
-    if (!ship_asset_init(&ship->asset)) {
-        fprintf(stderr, "Error: can't init ship asset\n");
-    } else if (!(ship->node = malloc(sizeof(struct Node)))) {
-        fprintf(stderr, "Error: can't allocate ship node\n");
+int ship_load(struct Ship* ship) {
+    FILE* f;
+    int ok = 1;
+    if (!(f = fopen("data/ship.glb", "r"))) {
+        fprintf(stderr, "Error: cant open ship glb file\n");
     } else {
-        Vec3 t = {0, -3, 0.5};
-        node_init(ship->node);
-        node_translate(ship->node, t);
-        node_set_geometry(ship->node, &ship->asset.geom);
-        ship->speed = 2.;
-        ship->prevx = 0;
-        return 1;
+        memset(&ship->metadata, 0, sizeof(ship->metadata));
+        memset(&ship->shared, 0, sizeof(ship->shared));
+        ok = gltf_load(ship->node, f, "data/",
+                       &ship->shared, &ship->metadata, 1);
+        fclose(f);
+        return ok;
     }
     return 0;
 }
 
-void ship_free(struct Ship* ship) {
+int ship_init(struct Ship* ship) {
+    ship->node = NULL;
+    if (!(ship->node = malloc(sizeof(struct Node)))) {
+        fprintf(stderr, "Error: can't allocate ship node\n");
+    } else {
+        Vec3 t = {0, 0, 0.5};
+        node_init(ship->node);
+        if (ship_load(ship)) {
+            node_translate(ship->node, t);
+            ship->speed = 2.;
+            ship->prevx = 0;
+            return 1;
+        }
+    }
     free(ship->node);
-    vertex_array_free(ship->asset.geom.vertexArray);
-    free(ship->asset.geom.material);
-    free(ship->asset.matpar);
+    return 0;
+}
+
+void ship_free(struct Ship* ship) {
+    nodes_free(ship->node, imported_node_free);
+    import_free_shared_data(&ship->shared);
+    import_free_metadata(&ship->metadata);
     return;
 }

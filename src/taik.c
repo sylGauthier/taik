@@ -64,7 +64,7 @@ int taik_run(struct Taik* taik) {
         if (map_forward(&taik->map, taik->ship.speed * dt)) {
             score++;
             printf("score: %d\n", score);
-            if (score % 100 == 0) taik->ship.speed += 0.5;
+            if (score % 50 == 0) taik->ship.speed += 0.25;
         }
         if (collide(&taik->ship, &taik->map)) {
             printf("game over\n");

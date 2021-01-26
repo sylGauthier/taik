@@ -58,7 +58,7 @@ int ui_init(struct UI* ui, void* cbData) {
     } else if (!(ui->camNode = calloc(1, sizeof(struct Node)))) {
         fprintf(stderr, "Error: can't allocate node\n");
     } else {
-        Vec3 t = {0, -6, 6};
+        Vec3 t = {0, -3, 6};
 
         ui->viewer->callbackData = cbData;
         ui->viewer->resize_callback = resize_callback;
@@ -114,7 +114,8 @@ float ui_render(struct UI* ui) {
 }
 
 void ui_free(struct UI* ui) {
-    scene_free(&ui->scene, NULL);
-    viewer_free(ui->viewer);
+    free(ui->scene.root.children);
     free(ui->camNode);
+    scene_clean(&ui->scene);
+    viewer_free(ui->viewer);
 }

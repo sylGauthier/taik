@@ -4,32 +4,67 @@
 
 #include <3dmr/mesh/box.h>
 #include <3dmr/mesh/quad.h>
+#include <3dmr/render/texture.h>
 
 #include "taik.h"
 
-static int init_wall(struct Asset* asset) {
-    int meshInit = 0;
-    struct Mesh cube;
+#define TA_DATA_PATH "data/"
 
-    if (!(asset->matpar = pbr_material_params_new())) {
-        fprintf(stderr, "Error: can't create material param\n");
-    } else if (!(meshInit = make_box(&cube, 1, 1, 1))) {
-        fprintf(stderr, "Error: can't init mesh\n");
-    } else if (!(asset->geom.vertexArray = vertex_array_new(&cube))) {
-        fprintf(stderr, "Error: can't init vertex array\n");
-    } else if (!(asset->geom.material =
-                 pbr_material_new(cube.flags, asset->matpar))) {
-        fprintf(stderr, "Error: can't init material\n");
-    } else {
-        mesh_free(&cube);
-        material_param_set_vec3_elems(&asset->matpar->albedo, 0.8, 0.8, 0.8);
-        return 1;
+static int steal_geometry(struct Asset* a,
+                          struct Node* n,
+                          struct ImportSharedData* sh) {
+    struct Geometry* g = &a->geom;
+    unsigned int i;
+
+    g->vertexArray = n->data.geometry->vertexArray;
+    g->material = n->data.geometry->material;
+    a->matpar = g->material->params;
+    n->type = NODE_EMPTY;
+    free(n->data.geometry);
+    for (i = 0; i < sh->numVA; i++) {
+        if (sh->va[i] == g->vertexArray) {
+            sh->va[i] = NULL;
+            break;
+        }
     }
-    free(asset->matpar);
-    if (meshInit) mesh_free(&cube);
-    if (asset->geom.vertexArray) vertex_array_free(asset->geom.vertexArray);
-    if (asset->geom.material) free(asset->geom.material);
-    return 0;
+    for (i = 0; i < sh->numMatParams; i++) {
+        if (sh->matParams[i] == g->material->params) {
+            sh->matParams[i] = NULL;
+            break;
+        }
+    }
+    return 1;
+}
+
+static int init_wall(struct Asset* asset) {
+    FILE* f = NULL;
+    struct Node* n = NULL;
+    struct ImportMetadata meta = {0};
+    struct ImportSharedData shared = {0};
+    int ok = 1;
+
+    if (!(f = fopen(TA_DATA_PATH "wall.glb", "r"))) {
+        fprintf(stderr, "Error: can't open wall glb file\n");
+        ok = 0;
+    } else if (!(n = malloc(sizeof(*n)))) {
+        fprintf(stderr, "Error: can't allocate node\n");
+        ok = 0;
+    } else {
+        node_init(n);
+        if (!gltf_load(n, f, TA_DATA_PATH, &shared, &meta, 1)) {
+            fprintf(stderr, "Error: can't parse wall glb file\n");
+            ok = 0;
+        } else if (!n->nbChildren || n->children[0]->type != NODE_GEOMETRY) {
+            ok = 0;
+        } else {
+            ok = steal_geometry(asset, n->children[0], &shared);
+        }
+    }
+    if (f) fclose(f);
+    nodes_free(n, imported_node_free);
+    import_free_shared_data(&shared);
+    import_free_metadata(&meta);
+    return ok;
 }
 
 static int init_empty(struct Asset* asset) {
@@ -42,13 +77,19 @@ static int init_empty(struct Asset* asset) {
         fprintf(stderr, "Error: can't init mesh\n");
     } else if (!(asset->geom.vertexArray = vertex_array_new(&quad))) {
         fprintf(stderr, "Error: can't init vertex array\n");
-    } else if (!(asset->geom.material =
-                 pbr_material_new(quad.flags, asset->matpar))) {
-        fprintf(stderr, "Error: can't init material\n");
     } else {
+        GLuint tex;
         mesh_free(&quad);
-        material_param_set_vec3_elems(&asset->matpar->albedo, 0.2, 0.2, 0.2);
-        return 1;
+        tex = texture_load_from_png("data/textures/sand.png");
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        material_param_set_vec3_texture(&asset->matpar->albedo, tex);
+        if (!(asset->geom.material =
+                    pbr_material_new(quad.flags, asset->matpar))) {
+            fprintf(stderr, "Error: can't init material\n");
+        } else {
+            return 1;
+        }
     }
     free(asset->matpar);
     if (meshInit) mesh_free(&quad);
@@ -82,27 +123,33 @@ static int init_tile(struct Map* map,
     return node_add_child(map->rows[row], map->tiles[row][col].node);
 }
 
+static void set_tile(struct Map* map,
+                     unsigned int row,
+                     unsigned int col,
+                     int t) {
+    struct Node* n = map->tiles[row][col].node;
+    Vec3 pos;
+
+    map->tiles[row][col].type = t;
+    if (map->assets[t].geom.vertexArray) {
+        node_set_geometry(n, &map->assets[t].geom);
+    }
+    VEC(pos, n->position[0], n->position[1], t ? 0.5 : 0);
+    node_set_pos(n, pos);
+}
+
 static void gen_row(struct Map* map, unsigned int row) {
     unsigned int i;
     int t;
 
     for (i = 0; i < MAP_WIDTH; i++) {
-        struct Node* n = map->tiles[row][i].node;
-        Vec3 pos;
-
         if (i == 0 || i == MAP_WIDTH - 1) {
             t = TA_WALL;
         } else {
             t = rand() % TA_NUM_TILE_TYPES;
             t *= !(row % 3);
         }
-
-        map->tiles[row][i].type = t;
-        if (map->assets[t].geom.vertexArray) {
-            node_set_geometry(n, &map->assets[t].geom);
-        }
-        VEC(pos, n->position[0], n->position[1], t ? 0.5 : 0);
-        node_set_pos(n, pos);
+        set_tile(map, row, i, t);
     }
 }
 
@@ -151,7 +198,15 @@ int map_init(struct Map* map, struct Camera* cam) {
                     break;
                 }
             }
-            gen_row(map, row);
+            if (row < 5) {
+                unsigned int i;
+                for (i = 0; i < MAP_WIDTH; i++) {
+                    set_tile(map, row, i, i % (MAP_WIDTH - 1)
+                                          ? TA_EMPTY : TA_WALL);
+                }
+            } else {
+                gen_row(map, row);
+            }
         }
     }
     if (!ok) map_free(map);
@@ -162,11 +217,13 @@ void map_free(struct Map* map) {
     unsigned int i, j;
 
     for (i = 0; i < MAP_LENGTH; i++) {
+        free(map->rows[i]->children);
         free(map->rows[i]);
         for (j = 0; j < MAP_WIDTH; j++) {
             free(map->tiles[i][j].node);
         }
     }
+    free(map->root->children);
     free(map->root);
 
     for (i = 0; i < TA_NUM_TILE_TYPES; i++) {

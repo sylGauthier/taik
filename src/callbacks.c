@@ -32,6 +32,6 @@ void cursor_callback(struct Viewer* viewer,
     struct Taik* taik = data;
     Vec3 t;
 
-    VEC(t, dx / 300., 0, 0);
+    VEC(t, dx / 500., 0, 0);
     node_translate(taik->ship.node, t);
 }
