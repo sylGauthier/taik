@@ -1,11 +1,17 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "taik.h"
 
-int taik_init(struct Taik* taik) {
+int taik_init(struct Taik* taik, unsigned int level) {
     int uiInit = 0, mapInit = 0, shipInit = 0;
+    unsigned int seed;
+
+    srand(level);
+    seed = rand();
+    srand(seed);
 
     if (!(uiInit = ui_init(&taik->ui, taik))) {
         fprintf(stderr, "Error: can't init UI\n");
@@ -54,17 +60,20 @@ static int collide(struct Ship* ship, struct Map* map) {
     return 0;
 }
 
-int taik_run(struct Taik* taik) {
+int taik_run(struct Taik* taik, unsigned int* score) {
     float dt;
-    unsigned int score = 0;
+    char title[64];
+
+    *score = 0;
     while (taik->ui.running) {
+        sprintf(title, "score: %u", *score);
+        viewer_set_title(taik->ui.viewer, title);
         viewer_process_events(taik->ui.viewer);
         ship_update(&taik->ship);
         dt = ui_render(&taik->ui);
         if (map_forward(&taik->map, taik->ship.speed * dt)) {
-            score++;
-            printf("score: %d\n", score);
-            if (score % 50 == 0) taik->ship.speed += 0.25;
+            (*score)++;
+            if (*score % 50 == 0) taik->ship.speed += 0.25;
         }
         if (collide(&taik->ship, &taik->map)) {
             printf("game over\n");

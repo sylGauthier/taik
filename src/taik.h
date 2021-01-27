@@ -81,9 +81,9 @@ struct Taik {
     struct Ship ship;
 };
 
-int taik_init(struct Taik* taik);
+int taik_init(struct Taik* taik, unsigned int level);
 int taik_parse_options(struct Taik* taik, int argc, char** argv);
-int taik_run(struct Taik* taik);
+int taik_run(struct Taik* taik, unsigned int* score);
 void taik_free(struct Taik* taik);
 
 #endif
